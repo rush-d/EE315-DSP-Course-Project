@@ -28,11 +28,6 @@ function [esTSNR,esHRNR]=WienerNoiseReduction(ns,fs,IS)
 % Output Parameters : enhanced speech  
 %   esTSNR      enhanced speech with the Two-Step Noise Reduction method 
 %   esHNRN      enhanced speech with the Harmonic Regeneration Noise Reduction method
-%             
-%Author :       LIU Ming, 2008
-%Initial Modified :     SCALART Pascal october, 2008
-%Last Modified ;        SCALART Pascal october, 2020
-%
 
 %% ------- input noisy speech  --------
 
@@ -44,7 +39,7 @@ NFFT=2*wl;             % FFT size is twice the window length
 hanwin = hanning(wl);
 
 
-if (nargin<3 | isstruct(IS))
+if (nargin<3 || isstruct(IS))
     IS=10*wl;             %Initial Silence or Noise Only part in samples (= ten frames)
 end
 %% -------- compute noise statistics ----------
@@ -69,7 +64,6 @@ overlap = fix((1-SP)*wl); % overlap between sucessive frames
 offset = wl - overlap;
 max_m = fix((l-NFFT)/offset);
 
-zvector = zeros(NFFT,1);
 oldmag = zeros(NFFT,1);
 news = zeros(l,1);
 
@@ -110,7 +104,7 @@ for m = 0:max_m
       %for HRNR use
    newmag = Gtsnr .* magy;
    newmags(:,m+1) = newmag;     %for HRNR use
-   ffty = newmag.*exp(i*phasey);
+   ffty = newmag.*exp(1i*phasey);
    oldmag = abs(newmag);
    news(begin:begin+NFFT-1) = news(begin:begin+NFFT-1) + real(ifft(ffty,NFFT))/normFactor;
 end
@@ -138,10 +132,10 @@ for m = 0:max_m
    
    newmag = newgain .*  xmaga(:,m+1);
  
-   ffty = newmag.*exp(i*phasea(:,m+1));
+   ffty = newmag.*exp(1i*phasea(:,m+1));
    
    news(begin:begin+NFFT-1) = news(begin:begin+NFFT-1) + real(ifft(ffty,NFFT))/normFactor;
-end;
+end
 %Output
 esHRNR=news;
 esTSNR = esTSNR * max(abs(ns))/max(abs(esTSNR));
@@ -164,17 +158,11 @@ figure;
 imagesc(T,f,20*log10(abs(B)));axis xy;colorbar
 title(['Spectrogram - output speech HRNR'])
 xlabel('Time (sec)');ylabel('Frequency (Hz)');
-
-
-
-
-
-
+%%
 function        NewGain=gaincontrol(Gain,ConstraintInLength)
 %
 %Title  : Additional Constraint on the impulse response  
 %         to ensure linear convolution property
-%
 %
 %Description : 
 %
@@ -201,15 +189,8 @@ function        NewGain=gaincontrol(Gain,ConstraintInLength)
 %       impulse response g(n) should be chosen such that Ltot = L1 + L2 -1 <= NFFT 
 %       => L2 <= NFFT+1-Ll
 %
-%       here we have NFFT=2*Ll so we should have L2 <= Ll+1. I have made
-%       the following choice : the time-duration of g(n) is limited to
-%       L2=NFFT/2=L1 (see lines 88 and 192)
-%
-%Author : SCALART Pascal
-%
-%October  2008
-%
-
+%       here we have NFFT=2*Ll so we should have L2 <= Ll+1
+%       The time-duration of g(n) is limited to L2=NFFT/2=L1
 
 meanGain=mean(Gain.^2);
 NFFT=length(Gain);
@@ -231,6 +212,3 @@ NewGain=abs(fft(ImpulseR2,NFFT));
 meanNewGain=mean(NewGain.^2);
 
 NewGain=NewGain*sqrt(meanGain/meanNewGain); % normalisation to keep the same energy (if white r.v.)
-
-
-   

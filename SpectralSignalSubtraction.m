@@ -1,6 +1,5 @@
 function output=SpectralSignalSubtraction(signal,fs,IS)
-% OUTPUT=SSBOLL79(S,FS,IS)
-% Spectral Subtraction based on Boll 79. Amplitude spectral subtraction 
+% Amplitude spectral subtraction 
 % Includes Magnitude Averaging and Residual noise Reduction
 % S is the noisy signal, FS is the sampling frequency and IS is the initial
 % silence (noise only) length in seconds (default value is .25 sec)
@@ -43,7 +42,7 @@ for i=2:(numberOfFrames-1)
     YS(:,i)=(Y(:,i-1)+Y(:,i)+Y(:,i+1))/3;
 end
 for i=1:numberOfFrames
-    [NoiseFlag, SpeechFlag, NoiseCounter, Dist]=vad(Y(:,i).^(1/Gamma),N.^(1/Gamma),NoiseCounter); %Magnitude Spectrum Distance VAD
+    [~, SpeechFlag, NoiseCounter, ~]=vad(Y(:,i).^(1/Gamma),N.^(1/Gamma),NoiseCounter); %Magnitude Spectrum Distance VAD
     if SpeechFlag==0
         N=(NoiseLength*N+Y(:,i))/(NoiseLength+1); %Update and smooth noise
         NRM=max(NRM,YS(:,i)-N);%Update Maximum Noise Residue
@@ -61,7 +60,7 @@ for i=1:numberOfFrames
     end
 end
 output=OverlapAdd2(X.^(1/Gamma),YPhase,W,SP*W);
-function ReconstructedSignal=OverlapAdd2(XNEW,yphase,windowLen,ShiftLen);
+function ReconstructedSignal=OverlapAdd2(XNEW,yphase,windowLen,ShiftLen)
 %Y=OverlapAdd(X,A,W,S);
 %Y is the signal reconstructed signal from its spectrogram. X is a matrix
 %with each column being the fft of a segment of signal. A is the phase
@@ -89,7 +88,7 @@ if fix(ShiftLen)~=ShiftLen
     disp('The shift length have to be an integer as it is the number of samples.')
     disp(['shift length is fixed to ' num2str(ShiftLen)])
 end
-[FreqRes, FrameNum]=size(XNEW);
+[~, FrameNum]=size(XNEW);
 Spec=XNEW.*exp(1i*yphase);
 if mod(windowLen,2) %if FreqResol is odd
     Spec=[Spec;flipud(conj(Spec(2:end,:)))];
@@ -97,7 +96,7 @@ else
     Spec=[Spec;flipud(conj(Spec(2:end-1,:)))];
 end
 sig=zeros((FrameNum-1)*ShiftLen+windowLen,1);
-weight=sig;
+
 for i=1:FrameNum
     start=(i-1)*ShiftLen+1;
     spec=Spec(:,i);
@@ -125,8 +124,7 @@ end
 if nargin<3
     NoiseCounter=0;
 end
-    
-FreqResol=length(signal);
+
 SpectralDist= 20*(log10(signal)-log10(noise));
 SpectralDist(find(SpectralDist<0))=0;
 Dist=mean(SpectralDist); 

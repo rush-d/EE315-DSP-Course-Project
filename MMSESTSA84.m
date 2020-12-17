@@ -10,18 +10,15 @@ function output = MMSESTSA84(signal,fs,IS)
 % for compatibility with my other functions but please do not try to use IS
 % it in that way as its functionality is not reliable.
 % The output is the restored estimate of clean speech.
-% Author: Esfandiar Zavarehei
-% Created: Dec-04
-% Last Modified: 21-01-05
-if (nargin<3 | isstruct(IS))
+if (nargin<3 || isstruct(IS))
     IS=.25; %Initial Silence or Noise Only part in seconds
 end
 W=fix(.025*fs); %Window length is 25 ms
 SP=.4; %Shift percentage is 40% (10ms) %Overlap-Add method works good with this value(.4)
 wnd=hamming(W);
 %IGNORE FROM HERE ...............................
-if (nargin>=3 & isstruct(IS))%This option is for compatibility with another programme
-    W=IS.windowsize
+if (nargin>=3 && isstruct(IS))%This option is for compatibility with another programme
+    W=IS.windowsize;
     SP=IS.shiftsize/W;
     %nfft=IS.nfft;
     wnd=IS.window;
@@ -40,7 +37,7 @@ Y=fft(y);
 YPhase=angle(Y(1:fix(end/2)+1,:)); %Noisy Speech Phase
 Y=abs(Y(1:fix(end/2)+1,:));%Specrogram
 numberOfFrames=size(Y,2);
-FreqResol=size(Y,1);
+
 N=mean(Y(:,1:NIS)')'; %initial Noise Power Spectrum mean
 LambdaD=mean((Y(:,1:NIS)').^2)';%initial Noise Power Spectrum variance
 alpha=.99; %used in smoothing xi (For Deciesion Directed method for estimation of A Priori SNR)
@@ -86,7 +83,9 @@ end
 close(h);
 output=OverlapAdd2(X,YPhase,W,SP*W); %Overlap-add Synthesis of speech
 output=filter(1,[1 -pre_emph],output); %Undo the effect of Pre-emphasis
-function ReconstructedSignal=OverlapAdd2(XNEW,yphase,windowLen,ShiftLen);
+
+
+function ReconstructedSignal=OverlapAdd2(XNEW,yphase,windowLen,ShiftLen)
 %Y=OverlapAdd(X,A,W,S);
 %Y is the signal reconstructed signal from its spectrogram. X is a matrix
 %with each column being the fft of a segment of signal. A is the phase
@@ -114,21 +113,22 @@ if fix(ShiftLen)~=ShiftLen
     disp('The shift length have to be an integer as it is the number of samples.')
     disp(['shift length is fixed to ' num2str(ShiftLen)])
 end
-[FreqRes FrameNum]=size(XNEW);
-Spec=XNEW.*exp(j*yphase);
+
+Spec=XNEW.*exp(1i*yphase);
 if mod(windowLen,2) %if FreqResol is odd
     Spec=[Spec;flipud(conj(Spec(2:end,:)))];
 else
     Spec=[Spec;flipud(conj(Spec(2:end-1,:)))];
 end
 sig=zeros((FrameNum-1)*ShiftLen+windowLen,1);
-weight=sig;
+
 for i=1:FrameNum
     start=(i-1)*ShiftLen+1;    
     spec=Spec(:,i);
     sig(start:start+windowLen-1)=sig(start:start+windowLen-1)+real(ifft(spec,windowLen));    
 end
 ReconstructedSignal=sig;
+
 function Seg=segment(signal,W,SP,Window)
 % SEGMENT chops a signal to overlapping windowed segments
 % A= SEGMENT(X,W,SP,WIN) returns a matrix which its columns are segmented
@@ -155,6 +155,7 @@ N=fix((L-W)/SP +1); %number of segments
 Index=(repmat(1:W,N,1)+repmat((0:(N-1))'*SP,1,W))';
 hw=repmat(Window,1,N);
 Seg=signal(Index).*hw;
+
 function [NoiseFlag, SpeechFlag, NoiseCounter, Dist]=vad(signal,noise,NoiseCounter,NoiseMargin,Hangover)
 %[NOISEFLAG, SPEECHFLAG, NOISECOUNTER, DIST]=vad(SIGNAL,NOISE,NOISECOUNTER,NOISEMARGIN,HANGOVER)
 %Spectral Distance Voice Activity Detector
